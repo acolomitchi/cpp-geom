@@ -184,5 +184,27 @@ TEST_CASE("closest point to non-degenerated segment", "[closest][segment]") {
   }
 }
 
-
+TEST_CASE("closest point to degenerated linear varieties", "[closest][line][ray][segment][degenerated]") {
+  SECTION("degenerated segment") {
+    double px = 0, py = 1;
+    double param = -1.0;
+    bool hasClosest =  linegeom::closest_point_param(px, py, 0.0, 0.0, 0.0, 0.0, param, linear_variety::segment);
+    REQUIRE(hasClosest);
+    REQUIRE(param == 0.5);
+  }
+  SECTION("degenerated ray") {
+    double px = 0, py = 1;
+    double param = -1.0;
+    bool hasClosest =  linegeom::closest_point_param(px, py, 0.0, 0.0, 0.0, 0.0, param, linear_variety::ray);
+    REQUIRE_FALSE(hasClosest);
+    REQUIRE(param == -1);
+  }
+  SECTION("degenerated line") {
+    double px = 0, py = 1;
+    double param = -1.0;
+    bool hasClosest =  linegeom::closest_point_param(px, py, 0.0, 0.0, 0.0, 0.0, param, linear_variety::line);
+    REQUIRE_FALSE(hasClosest);
+    REQUIRE(param == -1);
+  }
+}
 
