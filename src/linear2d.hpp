@@ -1,88 +1,66 @@
-/*
- * To change this license header, choose License Headers in Project Properties.
- * To change this template file, choose Tools | Templates
- * and open the template in the editor.
- */
+#ifndef LINEAR_GEOM_HPP
+#define LINEAR_GEOM_HPP
 
-/* 
- * File:   geom2d.hpp
- * Author: acolomitchi
- *
- * Created on 28 July 2018, 3:49 PM
- */
-
-#ifndef GEOM2D_HPP
-#define GEOM2D_HPP
-
-#include <cmath>
-
-#include <limits>
 #include <assert.h>
+#include <algorithm>
 
-namespace geomalgos2d
-{
+#include "prec2d.hpp"
+#include "dist2d.hpp"
+
+namespace geomalgos2d {
+
 enum linear_variety {
   line, // infinite at both sides
   ray, // semiline, start is source, no point before start, infinite at the end
   segment // limited at both sides
 };
 
-std::ostream& operator<<(
-    std::ostream& out,
-    const linear_variety value
-) {
-    static std::map<linear_variety, std::string> strings;
-    if (strings.size() == 0){
-#define INSERT_ELEMENT(p) strings[p] = #p
-        INSERT_ELEMENT(ray);     
-        INSERT_ELEMENT(segment);     
-        INSERT_ELEMENT(line);             
-#undef INSERT_ELEMENT
-    }   
-    return out << strings[value];
+template <typename coord_t, typename al_coord_t>
+    coord_t lincomb(coord_t start, coord_t end, coord_t param)
+{
+  al_coord_t s = static_cast<al_coord_t>(start);
+  al_coord_t e = static_cast<al_coord_t>(end);
+  al_coord_t p = static_cast<al_coord_t>(param);
+  al_coord_t ret = (1-p)*s + p*e;
+  return static_cast<coord_t>(ret);
+}
+
+template <typename coord_t>
+    coord_t lincomb(coord_t start, coord_t end, coord_t param)
+{
+  coord_t ret = (1-param)*start + param*end;
+  return ret;
 }
 
 template <typename coord_t, typename al_coord_t = double> class linegeo2d {
 public:
 
 private:
-  static al_coord_t s_SqEps;
-  static al_coord_t s_Eps;
-  
-  static bool same_point_test_sq(
-    coord_t x0, coord_t y0, coord_t x1, coord_t y1,
-    al_coord_t sqEps
-  ) {
-    al_coord_t dx = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (x0);
-    al_coord_t dy = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (y0);
-    return (dx*dx+dy*dy)<=sqEps;
-  }
-  
+
   static bool p_on_dirline(
     al_coord_t anchorX, al_coord_t anchorY,
     al_coord_t dirX, al_coord_t dirY,
     al_coord_t x, al_coord_t y,
     al_coord_t& lineP, linear_variety lineType,
-    al_coord_t eps
+    const eps_prec<al_coord_t>& prec = eps_prec<al_coord_t>::DefaultPrec
   ) {
     bool ret = false;
-    double sqEps=eps*eps;
-    bool vert = std::abs(dirX) <= eps;
-    bool horiz = std::abs(dirY) <= eps;
+    bool vert = std::abs(dirX) <= prec.eps();
+    bool horiz = std::abs(dirY) <= prec.eps();
     al_coord_t p=0.0;
     if (vert && horiz) { // degenerated line
       // only if the point is the same with the anchor
-      ret = same_point_test_sq(anchorX, anchorY, x, y, sqEps);
+      ret = eps_prec<al_coord_t>::same_point_test_sq(anchorX, anchorY, x, y, prec);
       if (ret) p = 0.0;
     }
     else if (vert) {
-      ret = (std::abs(x - anchorX) <= eps); // on the same vertical
+      ret = (std::abs(x - anchorX) <= prec.eps()); // on the same vertical
       if (ret) { // x on the same vertical, safe to rely on y
         p = (y - anchorY) / dirY;
       }
     }
     else if (horiz) { // is not vert
-      ret = (std::abs(y - anchorY) < eps);
+      ret = (std::abs(y - anchorY) < prec.eps());
       if (ret) { // y on the same horizontal we can rely on x
         p = (x - anchorX) / dirX;
       }
@@ -90,65 +68,35 @@ private:
     else { // non degenerated line
       al_coord_t tx = (x - anchorX) / dirX;
       al_coord_t ty = (y - anchorY) / dirY;
-      ret = (std::abs(tx - ty) <= eps);
+      ret = (std::abs(tx - ty) <= prec.eps());
       if (ret) {
         p = (tx + ty) / 2;
       }
     }
-    switch(lineType) {
-      case linear_variety::segment:
-        ret=(p>=0 && p<=1);
-        break;
-      case linear_variety::ray:
-        ret = (p>=0);
-        break;
-      default:
-        ret=true;
-        break;
+    if(ret) {
+      switch(lineType) {
+        case linear_variety::segment:
+          ret=(p>=0 && p<=1);
+          break;
+        case linear_variety::ray:
+          ret = (p>=0);
+          break;
+        default:
+          ret=true;
+          break;
+      }
+      if(ret) lineP = p;
     }
-    if(ret) lineP=p;
     return ret;
   }
 
 public:
-  static al_coord_t epsilon() {
-    if(s_Eps<0) epsilon(-1);
-    return s_Eps; 
-  }
-  static al_coord_t sq_epsilon() { 
-    if(s_Eps<0) epsilon(-1);
-    return s_SqEps; 
-  }
-  static al_coord_t epsilon(al_coord_t newVal)
-  {
-    al_coord_t ret=s_Eps;
-    if(newVal<0) {
-      al_coord_t e=std::numeric_limits<al_coord_t>::epsilon()*1024.0;
-      newVal=std::sqrt(e);
-    }
-    s_Eps=newVal;
-    s_SqEps=newVal*newVal;
-    return ret;
-  }
-  
-  static coord_t sqeuclid(coord_t x0, coord_t y0, coord_t x1, coord_t y1){
-    al_coord_t dx = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (x0);
-    al_coord_t dy = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (y0);
-    return static_cast<coord_t> (dx * dx + dy * dy);
-  }
 
-  static coord_t euclid(coord_t x0, coord_t y0, coord_t x1, coord_t y1) {
-    al_coord_t dx = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (x0);
-    al_coord_t dy = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (y0);
-    return static_cast<coord_t> (std::hypot(dx, dy));
-  }
-  
   static bool same_point_test(
     coord_t x0, coord_t y0, coord_t x1, coord_t y1,
-    al_coord_t eps = -1
+    const eps_prec<al_coord_t>& prec = eps_prec<al_coord_t>::DefaultPrec
   ) {
-    if(eps<0) eps=epsilon();
-    return same_point_test_sq(x0, y0, x1, y1, eps*eps);
+    return same_point_test_sq(x0, y0, x1, y1, prec);
   }
 
   static coord_t dotp(
@@ -202,21 +150,40 @@ public:
     dy = y1 - y0;
   }
 
+  static void left_ortho_direction(
+      coord_t x0, coord_t y0,
+      coord_t x1, coord_t y1,
+      coord_t& dx, coord_t&dy
+  ) {
+    dx = y0 - y1;
+    dy = x1 - x0;
+  }
+
+  static void right_ortho_direction(
+      coord_t x0, coord_t y0,
+      coord_t x1, coord_t y1,
+      coord_t& dx, coord_t&dy
+  ) {
+    dx = y1 - y0;
+    dy = x0 - x1;
+  }
+
   static bool versor(
     coord_t x0, coord_t y0,
     coord_t x1, coord_t y1,
-    coord_t& dx, coord_t& dy
+    coord_t& dx, coord_t& dy,
+    const eps_prec<al_coord_t>& prec = eps_prec<al_coord_t>::DefaultPrec
   ) {
     al_coord_t ddx = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (x0);
     al_coord_t ddy = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (y0);
     al_coord_t norm = std::hypot(ddx, ddy);
-    bool ret = norm > epsilon();
+    bool ret = norm > prec.eps();
     if(ret) {
       dx=ddx/norm; dy=ddy/norm;
     }
     return ret;
   }
-  
+
   // the line is defined by start point and direction (dir=endPoint-startPoint)
   // Returns true if the {x,y} point lays on the line, in which case lineP is
   //  updated with the t value that makes p=={anchorX+t*dirX,anchorY+t*dirY}
@@ -226,49 +193,46 @@ public:
     coord_t x, coord_t y,
     al_coord_t& lineP,
     linear_variety lineType=linear_variety::line,
-    al_coord_t eps=-1
+    const eps_prec<al_coord_t>& prec = eps_prec<al_coord_t>::DefaultPrec
   )
   {
-    if(eps<0) eps=epsilon();
     al_coord_t param=0;
     bool ret=p_on_dirline(
       static_cast<al_coord_t>(anchorX), static_cast<al_coord_t>(anchorY),
       static_cast<al_coord_t>(dirX), static_cast<al_coord_t>(dirY),
       static_cast<al_coord_t>(x), static_cast<al_coord_t>(y),
-      param, lineType, eps
+      param, lineType, prec
     );
     if(ret) lineP=static_cast<coord_t>(param);
     return ret;
   }
-  
-  
+
+
   static bool intersection_params(
     coord_t s0x, coord_t s0y, coord_t e0x, coord_t e0y,
     coord_t s1x, coord_t s1y, coord_t e1x, coord_t e1y,
     al_coord_t& l0param, al_coord_t& l1param,
-    linear_variety l0type=linear_variety::line, 
-    linear_variety l1type=linear_variety::line, 
-    al_coord_t eps=-1
+    linear_variety l0type=linear_variety::line,
+    linear_variety l1type=linear_variety::line,
+    const eps_prec<al_coord_t>& prec = eps_prec<al_coord_t>::DefaultPrec
   )
   {
     bool ret=false;
-    if(eps<0) eps=epsilon();
-    al_coord_t sqEps=eps*eps;
     al_coord_t d0x = static_cast<al_coord_t> (e0x) - static_cast<al_coord_t> (s0x);
     al_coord_t d0y = static_cast<al_coord_t> (e0y) - static_cast<al_coord_t> (s0y);
     al_coord_t d1x = static_cast<al_coord_t> (e1x) - static_cast<al_coord_t> (s1x);
     al_coord_t d1y = static_cast<al_coord_t> (e1y) - static_cast<al_coord_t> (s1y);
-    bool seg0Degenerated = (d0x * d0x + d0y * d0y) <= sqEps;
-    bool seg1Degenerated = (d1x * d1x + d1y * d1y) <= sqEps;
+    bool seg0Degenerated = (d0x * d0x + d0y * d0y) <= prec.sqeps();
+    bool seg1Degenerated = (d1x * d1x + d1y * d1y) <= prec.sqeps();
     if (!seg0Degenerated && !seg1Degenerated) {
       al_coord_t det = d0x * d1y - d1x*d0y;
-      if (std::abs(det) <= sqEps) { // parallel or coincident
+      if (std::abs(det) <= prec.sqeps()) { // parallel or coincident
         al_coord_t p1s_param=0, p1e_param=0;
         ret=p_on_dirline(
           static_cast<al_coord_t> (s0x), static_cast<al_coord_t> (s0y),
           d0x, d0y,
           static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
-          p1s_param, linear_variety::line, eps
+          p1s_param, linear_variety::line, prec
         );
         if(ret) {
           // See how the end of second line/ray/segment is positioned
@@ -276,7 +240,7 @@ public:
             static_cast<al_coord_t> (s0x), static_cast<al_coord_t> (s0y),
             d0x, d0y,
             static_cast<al_coord_t> (e1x), static_cast<al_coord_t> (e1y),
-            p1e_param, linear_variety::line, eps
+            p1e_param, linear_variety::line, prec
           );
         }
         if(ret) { // colinear segs/rays/lines
@@ -284,7 +248,7 @@ public:
             case linear_variety::line:
               // ret is true already, we'll consider the "mid point" of the second line
               // as the intersection.
-              l0param=(p1s_param+p1e_param)/2; 
+              l0param=(p1s_param+p1e_param)/2;
               l1param=0.5;
               break;
             case linear_variety::ray:
@@ -298,12 +262,12 @@ public:
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
                       static_cast<al_coord_t> (s0x), static_cast<al_coord_t> (s0y),
-                      l1param, linear_variety::line, eps
+                      l1param, linear_variety::line, prec
                     );
                   }
                   else if(p1s_param>=0 && p1e_param>=0) {
                     // take the "mid-point" of the second line as the intersection
-                    l0param=(p1s_param+p1e_param)/2; 
+                    l0param=(p1s_param+p1e_param)/2;
                     l1param=0.5;
                   }
                   else if(p1s_param>=0) { // this means p1e_param <0
@@ -319,14 +283,14 @@ public:
                   if(p1s_param>=0 && p1e_param>=0) {
                     // first ray catches up the second one
                     // take the "mid-point" of the second ray as the intersection
-                    l0param=(p1s_param+p1e_param)/2; 
+                    l0param=(p1s_param+p1e_param)/2;
                     l1param=0.5;
                   }
                   else if(p1s_param>=0) { // opposite rays with intersection
                     l0param=p1s_param;
                     l1param=0.0;
                   }
-                  else if(p1e_param>=0) { 
+                  else if(p1e_param>=0) {
                     // same dir rays, with the second end point after the first ray's source
                     l0param=p1e_param;
                     l1param=1.0;
@@ -338,9 +302,9 @@ public:
                     p_on_dirline(
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
-                      (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2, 
+                      (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2,
                       (static_cast<al_coord_t> (s0y)+static_cast<al_coord_t> (e0y))/2,
-                      l1param, linear_variety::ray, eps
+                      l1param, linear_variety::ray, prec
                     );
                   }
                   else { // opposite rays not sharing any points
@@ -351,14 +315,14 @@ public:
                   if(p1s_param>=0 && p1e_param>=0) {
                     // second segment fully on the first ray
                     // take the "mid-point" of the second segment as the intersection
-                    l0param=(p1s_param+p1e_param)/2; 
+                    l0param=(p1s_param+p1e_param)/2;
                     l1param=0.5;
                   }
                   else if(p1s_param>=0) { // only the start of second segment is on the ray
                     l0param=p1s_param;
                     l1param=0.0;
                   }
-                  else if(p1e_param>=0) { 
+                  else if(p1e_param>=0) {
                     // only the end of the second segment is on the ray
                     l0param=p1e_param;
                     l1param=1.0;
@@ -378,9 +342,9 @@ public:
                   p_on_dirline(
                     static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                     d1x, d1y,
-                    (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2, 
+                    (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2,
                     (static_cast<al_coord_t> (s0y)+static_cast<al_coord_t> (e0y))/2,
-                    l1param, linear_variety::line, eps
+                    l1param, linear_variety::line, prec
                   );
                   break;
                 case linear_variety::ray: // segment-ray intersection
@@ -393,9 +357,9 @@ public:
                     ret=p_on_dirline(
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
-                      (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2, 
+                      (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2,
                       (static_cast<al_coord_t> (s0y)+static_cast<al_coord_t> (e0y))/2,
-                      l1param, linear_variety::ray, eps
+                      l1param, linear_variety::ray, prec
                     );
                     l0param=0.5;
                   }
@@ -413,7 +377,7 @@ public:
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
                       static_cast<al_coord_t> (e0x),  static_cast<al_coord_t> (e0y),
-                      l1param, linear_variety::ray, eps
+                      l1param, linear_variety::ray, prec
                     );
                   }
                   else if(p1s_param>p1e_param){ // ray travels towards the segment start
@@ -422,7 +386,7 @@ public:
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
                       static_cast<al_coord_t> (s0x),  static_cast<al_coord_t> (s0y),
-                      l1param, linear_variety::ray, eps
+                      l1param, linear_variety::ray, prec
                     );
                   }
                   else {
@@ -444,9 +408,9 @@ public:
                     ret=p_on_dirline(
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
-                      (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2.0,  
+                      (static_cast<al_coord_t> (s0x)+static_cast<al_coord_t> (e0x))/2.0,
                       (static_cast<al_coord_t> (s0y)+static_cast<al_coord_t> (e0y))/2.0,
-                      l1param, linear_variety::ray, eps
+                      l1param, linear_variety::ray, prec
                     );
                   }
                   else if(
@@ -466,9 +430,9 @@ public:
                     ret=p_on_dirline(
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
-                      static_cast<al_coord_t> (s0x)+d0x*l0param,  
+                      static_cast<al_coord_t> (s0x)+d0x*l0param,
                       static_cast<al_coord_t> (s0y)+d0y*l0param,
-                      l1param, linear_variety::segment, eps
+                      l1param, linear_variety::segment, prec
                     );
                   }
                   else if(p1e_param>=0 && p1e_param<=1) {
@@ -480,9 +444,9 @@ public:
                     ret=p_on_dirline(
                       static_cast<al_coord_t> (s1x), static_cast<al_coord_t> (s1y),
                       d1x, d1y,
-                      static_cast<al_coord_t> (s0x)+d0x*l0param,  
+                      static_cast<al_coord_t> (s0x)+d0x*l0param,
                       static_cast<al_coord_t> (s0y)+d0y*l0param,
-                      l1param, linear_variety::segment, eps
+                      l1param, linear_variety::segment, prec
                     );
                   }
                   else {
@@ -515,7 +479,7 @@ public:
         if(ret) {
           switch(l1type) {
             case linear_variety::segment:
-              ret=(param1>=0 && param1<1);
+              ret=(param1>=0 && param1<=1);
               break;
             case linear_variety::ray:
               ret=(param1>=0);
@@ -541,7 +505,7 @@ public:
       al_coord_t m1y=(static_cast<al_coord_t>(s1y)+static_cast<al_coord_t>(e1y))/2;
       m1x-=m0x;
       m1y-=m0y;
-      ret=(m1x*m1x+m1y*m1y) < sqEps;
+      ret=(m1x*m1x+m1y*m1y) < prec.sqeps();
       if(ret) {
         l0param=l1param=0.5;
       }
@@ -555,7 +519,7 @@ public:
         static_cast<al_coord_t>(s1x), static_cast<al_coord_t>(s1y),
         d1x, d1y,
         m0x, m0y,
-        p, l1type, eps
+        p, l1type, prec
       );
       if(ret) {
         l0param=0.5;
@@ -571,7 +535,7 @@ public:
         static_cast<al_coord_t>(s0x), static_cast<al_coord_t>(s0y),
         d0x, d0y,
         m1x, m1y,
-        p, l1type, eps
+        p, l1type, prec
       );
       if(ret) {
         l1param=0.5;
@@ -581,12 +545,6 @@ public:
     return ret;
   }
 };
-template <typename coord_t, typename al_coord_t> 
-al_coord_t linegeo2d<coord_t, al_coord_t>::s_Eps = -1;
-template <typename coord_t, typename al_coord_t> 
-al_coord_t linegeo2d<coord_t, al_coord_t>::s_SqEps = -1;
 
-}
-
-#endif /* GEOM2D_HPP */
-
+} // namespace geomalgos2d
+#endif /* LINEAR_GEOM_HPP */

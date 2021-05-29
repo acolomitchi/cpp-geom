@@ -17,7 +17,8 @@
 #include <map>
 #include <iostream>
 #include <string>
-#include "geom2d.hpp"
+#include "linear2d.hpp"
+#include "geom2dio.hpp"
 
 
 /*
@@ -94,7 +95,8 @@ void printIntersection(
     }
     std::cout << std::endl;
 }
-int main(int argc, char** argv) {
+
+nt main(int argc, char** argv) {
 //    A a;
 //    resolver<A,int,int>::method_t x=&A::incr;
 //    god_help_me<&A::incr> y;
