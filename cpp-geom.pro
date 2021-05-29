@@ -6,7 +6,8 @@ CONFIG -= qt
 
 SOURCES += \
     tests/main.cpp \
-    tests/line-intersect.cpp
+    tests/line-intersect.cpp \
+    tests/closest-point.cpp
 
 HEADERS += \
     src/prec2d.hpp \

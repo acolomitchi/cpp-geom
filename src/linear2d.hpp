@@ -211,7 +211,7 @@ public:
   static bool intersection_params(
     coord_t s0x, coord_t s0y, coord_t e0x, coord_t e0y,
     coord_t s1x, coord_t s1y, coord_t e1x, coord_t e1y,
-    al_coord_t& l0param, al_coord_t& l1param,
+    al_coord_t& l0param, al_coord_t& l1param,  bool& sharedSupp,
     linear_variety l0type=linear_variety::line,
     linear_variety l1type=linear_variety::line,
     const eps_prec<al_coord_t>& prec = eps_prec<al_coord_t>::DefaultPrec
@@ -244,6 +244,7 @@ public:
           );
         }
         if(ret) { // colinear segs/rays/lines
+          sharedSupp = true;
           switch(l0type) {
             case linear_variety::line:
               // ret is true already, we'll consider the "mid point" of the second line
@@ -541,6 +542,59 @@ public:
         l1param=0.5;
         l0param=p;
       }
+    }
+    return ret;
+  }
+
+  static bool closest_point_param(
+      coord_t samplex, coord_t sampley,
+      coord_t lsx, coord_t lsy,
+      coord_t lex, coord_t ley,
+      coord_t& param_closest,
+      linear_variety linetype = linear_variety::line,
+      const eps_prec<al_coord_t>& prec = eps_prec<al_coord_t>::DefaultPrec
+  ) {
+    bool ret = false;
+    al_coord_t d0x = static_cast<al_coord_t> (lex) - static_cast<al_coord_t> (lsx);
+    al_coord_t d0y = static_cast<al_coord_t> (ley) - static_cast<al_coord_t> (lsy);
+    bool segDegenerated = (d0x * d0x + d0y * d0y) <= prec.sqeps();
+    if(segDegenerated) {
+      switch (linetype) {
+        case linear_variety::segment:
+          ret = true;
+          param_closest = static_cast<al_coord_t>(0.5);
+          break;
+        default:
+          ret = false;
+          break;
+      }
+    }
+    else { // intersect the original line with the one passing through sample and orthogonal on the original
+      al_coord_t lineparam=0, orthoparam = 0;
+      coord_t orthoex = static_cast<coord_t>(samplex - d0y);
+      coord_t orthoey = static_cast<coord_t>(sampley + d0x);
+      // a non-degenerated line will always have an intersection with a normal to it
+      bool sharedsupp = false; // as it will always be
+      intersection_params(
+        lsx, lsy, lex, ley,
+        samplex, sampley, orthoex, orthoey,
+        lineparam, orthoparam, sharedsupp,
+        linear_variety::line, linear_variety::line,
+        prec
+      );
+      switch(linetype) {
+        case linear_variety::line:
+          param_closest = lineparam;
+          break;
+        case linear_variety::ray:
+          param_closest = std::max<al_coord_t>(lineparam, 0);
+          break;
+        case linear_variety::segment:
+          param_closest = std::min<al_coord_t>(lineparam, 1);
+          param_closest = std::max<al_coord_t>(param_closest, 0);
+          break;
+      }
+      ret = true;
     }
     return ret;
   }

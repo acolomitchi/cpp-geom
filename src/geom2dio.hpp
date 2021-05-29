@@ -9,7 +9,7 @@
 
 namespace geomalgos2d
 {
-std::ostream& operator<<(
+inline std::ostream& operator<<(
     std::ostream& out,
     const linear_variety value
 ) {

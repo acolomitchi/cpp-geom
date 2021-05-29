@@ -25,10 +25,11 @@ struct sorta_line {
   ) const
   {
     using linegeom=geomalgos2d::linegeo2d<double, double>;
+    bool sameSupport = false;
     bool ret = linegeom::intersection_params(
       sx, sy, ex, ey,
       o.sx, o.sy, o.ex, o.ey,
-      thisP, oP,
+      thisP, oP, sameSupport,
       type, o.type
     );
     using namespace geomalgos2d;
