@@ -16,7 +16,7 @@ enum linear_variety {
 };
 
 template <typename coord_t, typename al_coord_t>
-    coord_t lincomb(coord_t start, coord_t end, coord_t param)
+coord_t lincomb(coord_t start, coord_t end, al_coord_t param)
 {
   al_coord_t s = static_cast<al_coord_t>(start);
   al_coord_t e = static_cast<al_coord_t>(end);
@@ -26,11 +26,135 @@ template <typename coord_t, typename al_coord_t>
 }
 
 template <typename coord_t>
-    coord_t lincomb(coord_t start, coord_t end, coord_t param)
+coord_t lincomb(coord_t start, coord_t end, coord_t param)
 {
   coord_t ret = (1-param)*start + param*end;
   return ret;
 }
+
+template <typename coord_t, typename al_coord_t>
+coord_t reflect(coord_t val, coord_t mirror) {
+  return lincomb<coord_t, al_coord_t>(val, mirror, static_cast<al_coord_t>(2));
+}
+
+template <typename coord_t>
+coord_t reflect(coord_t val, coord_t mirror) {
+  return lincomb<coord_t>(val, mirror, static_cast<coord_t>(2));
+}
+
+template <typename coord_t>
+coord_t dotp(
+  coord_t dx0, coord_t dy0,
+  coord_t dx1, coord_t dy1
+) {
+  coord_t ret = dx0*dx1 + dy0*dy1;
+  return ret;
+}
+
+template <typename coord_t, typename al_coord_t>
+coord_t dotp(
+  coord_t dx0, coord_t dy0,
+  coord_t dx1, coord_t dy1
+) {
+  al_coord_t ret = dotp<al_coord_t>(
+      static_cast<al_coord_t>(dx0), static_cast<al_coord_t>(dx1),
+      static_cast<al_coord_t>(dy0), static_cast<al_coord_t>(dy1)
+  );
+  return static_cast<coord_t> (ret);
+}
+
+template <typename coord_t, typename al_coord_t>
+coord_t dotp(
+  coord_t commonX, coord_t commonY,
+  coord_t x0, coord_t y0,
+  coord_t x1, coord_t y1
+) {
+  al_coord_t dx0 = static_cast<al_coord_t> (x0) - static_cast<al_coord_t> (commonX);
+  al_coord_t dy0 = static_cast<al_coord_t> (y0) - static_cast<al_coord_t> (commonY);
+  al_coord_t dx1 = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (commonX);
+  al_coord_t dy1 = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (commonY);
+  al_coord_t ret = dotp<al_coord_t>(dx0, dx1, dy0, dy1);
+  return static_cast<coord_t> (ret);
+}
+
+template <typename coord_t>
+coord_t crossp(
+  coord_t dx0, coord_t dy0,
+  coord_t dx1, coord_t dy1
+) {
+  coord_t ret = dx0*dy1 - dx1*dy0;
+  return ret;
+}
+
+template <typename coord_t, typename al_coord_t>
+coord_t crossp(
+  coord_t dx0, coord_t dy0,
+  coord_t dx1, coord_t dy1
+) {
+  al_coord_t ret = crossp<al_coord_t>(
+      static_cast<al_coord_t>(dx0), static_cast<al_coord_t>(dy0),
+      static_cast<al_coord_t>(dx1), static_cast<al_coord_t>(dy1)
+  );
+  return static_cast<coord_t> (ret);
+}
+
+
+template <typename coord_t, typename al_coord_t>
+coord_t crossp(
+  coord_t commonX, coord_t commonY,
+  coord_t x0, coord_t y0,
+  coord_t x1, coord_t y1
+) {
+  al_coord_t dx0 = static_cast<al_coord_t> (x0) - static_cast<al_coord_t> (commonX);
+  al_coord_t dy0 = static_cast<al_coord_t> (y0) - static_cast<al_coord_t> (commonY);
+  al_coord_t dx1 = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (commonX);
+  al_coord_t dy1 = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (commonY);
+  al_coord_t ret = crossp<al_coord_t>(dx0, dy0, dx1, dy1);
+  return static_cast<coord_t>(ret);
+}
+
+template <typename coord_t>
+void products(
+  coord_t dx0, coord_t dy0,
+  coord_t dx1, coord_t dy1,
+  coord_t& dotProd, coord_t& crossProd
+) {
+  dotProd = dotp<coord_t>(dx0, dy0, dx1, dy1);
+  crossProd = crossp<coord_t>(dx0, dy0, dx1, dy1);
+}
+
+template <typename coord_t>
+void products(
+  coord_t commonX, coord_t commonY,
+  coord_t x0, coord_t y0,
+  coord_t x1, coord_t y1,
+  coord_t& dotProd, coord_t& crossProd
+) {
+  coord_t dx0 = x0 - commonX;
+  coord_t dy0 = y0 - commonY;
+  coord_t dx1 = x1 - commonX;
+  coord_t dy1 = y1 - commonY;
+  dotProd = dotp<coord_t>(dx0, dy0, dx1, dy1);
+  crossProd = crossp<coord_t>(dx0, dy0, dx1, dy1);
+}
+
+template <typename coord_t, typename al_coord_t>
+void products(
+  coord_t commonX, coord_t commonY,
+  coord_t x0, coord_t y0,
+  coord_t x1, coord_t y1,
+  coord_t& dotProd, coord_t& crossProd
+) {
+  al_coord_t dx0 = static_cast<al_coord_t> (x0) - static_cast<al_coord_t> (commonX);
+  al_coord_t dy0 = static_cast<al_coord_t> (y0) - static_cast<al_coord_t> (commonY);
+  al_coord_t dx1 = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (commonX);
+  al_coord_t dy1 = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (commonY);
+  al_coord_t dp = dotp<al_coord_t>(dx0, dy0, dx1, dy1);
+  al_coord_t cp = crossp<al_coord_t>(dx0, dy0, dx1, dy1);
+  dotProd = static_cast<coord_t> (dp);
+  crossProd = static_cast<coord_t> (cp);
+}
+
 
 template <typename coord_t, typename al_coord_t = double> class linegeo2d {
 public:
@@ -99,47 +223,7 @@ public:
     return same_point_test_sq(x0, y0, x1, y1, prec);
   }
 
-  static coord_t dotp(
-    coord_t commonX, coord_t commonY,
-    coord_t x0, coord_t y0,
-    coord_t x1, coord_t y1
-  ) {
-    al_coord_t dx0 = static_cast<al_coord_t> (x0) - static_cast<al_coord_t> (commonX);
-    al_coord_t dy0 = static_cast<al_coord_t> (y0) - static_cast<al_coord_t> (commonY);
-    al_coord_t dx1 = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (commonX);
-    al_coord_t dy1 = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (commonY);
-    al_coord_t ret = dx0 * dx1 + dy0*dy1;
-    return static_cast<coord_t> (ret);
-  }
 
-  static coord_t crossp(
-    coord_t commonX, coord_t commonY,
-    coord_t x0, coord_t y0,
-    coord_t x1, coord_t y1
-    ) {
-    al_coord_t dx0 = static_cast<al_coord_t> (x0) - static_cast<al_coord_t> (commonX);
-    al_coord_t dy0 = static_cast<al_coord_t> (y0) - static_cast<al_coord_t> (commonY);
-    al_coord_t dx1 = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (commonX);
-    al_coord_t dy1 = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (commonY);
-    al_coord_t ret = dx0 * dy1 - dy0*dx1;
-    return static_cast<coord_t> (ret);
-  }
-
-  static void products(
-    coord_t commonX, coord_t commonY,
-    coord_t x0, coord_t y0,
-    coord_t x1, coord_t y1,
-    coord_t& dotProd, coord_t& crossProd
-    ) {
-    al_coord_t dx0 = static_cast<al_coord_t> (x0) - static_cast<al_coord_t> (commonX);
-    al_coord_t dy0 = static_cast<al_coord_t> (y0) - static_cast<al_coord_t> (commonY);
-    al_coord_t dx1 = static_cast<al_coord_t> (x1) - static_cast<al_coord_t> (commonX);
-    al_coord_t dy1 = static_cast<al_coord_t> (y1) - static_cast<al_coord_t> (commonY);
-    al_coord_t dp = dx0 * dx1 + dy0*dy1;
-    al_coord_t cp = dx0 * dy1 - dx1*dy0;
-    dotProd = static_cast<coord_t> (dp);
-    crossProd = static_cast<coord_t> (cp);
-  }
 
   static void direction(
     coord_t x0, coord_t y0,

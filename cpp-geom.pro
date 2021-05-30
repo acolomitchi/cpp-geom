@@ -7,7 +7,8 @@ CONFIG -= qt
 SOURCES += \
     tests/main.cpp \
     tests/line-intersect.cpp \
-    tests/closest-point.cpp
+    tests/closest-point.cpp \
+    tests/bquad-basic.cpp
 
 HEADERS += \
     src/prec2d.hpp \
@@ -15,6 +16,8 @@ HEADERS += \
     src/geom2dio.hpp \
     src/geom2d.hpp \
     src/dist2d.hpp \
-    tests/sorta_line.hpp
+    tests/sorta_line.hpp \
+    src/bquadgeo2d.hpp \
+    tests/sorta_quad.hpp
 
 INCLUDEPATH += ../../../Catch2/single_include

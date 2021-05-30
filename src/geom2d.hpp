@@ -4,6 +4,7 @@
 #include "prec2d.hpp"
 #include "dist2d.hpp"
 #include "linear2d.hpp"
+#include "bquadgeo2d.hpp"
 
 #include "geom2dio.hpp"
 
